@@ -70,7 +70,7 @@ class BuildPaperCitationGraph(YearFilterableTask):
             return papers_df['id'].values
 
     def read_paper_fields(self):
-        """Iterate through (paper_id, venue) pairs from the paper csv file."""
+        """Iterate through (paper_id, title, venue, year, abstract) tuple from the paper csv file."""
         for record in util.iter_csv_fwrapper(self.papers_file):
             yield (record[0], record[1], record[2], record[3], record[4])
 
@@ -91,7 +91,7 @@ class BuildPaperCitationGraph(YearFilterableTask):
         util.write_csv_to_fwrapper(
             self.idmap_output_file, ('paper_id', 'node_id'), rows)
 
-        # Now add venues to nodes as paper attributes
+        # Now add fields to nodes as paper attributes
         for paper_id, title, venue, year, abstract in self.read_paper_fields():
             node_id = idmap[paper_id]
             refg.vs[node_id]['title'] = title
@@ -105,7 +105,7 @@ class BuildPaperCitationGraph(YearFilterableTask):
 
         for author_id, paper_id in util.iter_csv_fwrapper(self.author_file):
             node_id = idmap[paper_id]
-            refg.vs[node_id]['author_ids'].append(author_id)
+            refg.vs[node_id]['author_ids'] = author_id
 
         # Finally add edges from citation records
         citation_links = self.read_paper_references(idmap)
@@ -170,6 +170,11 @@ class BuildAuthorCitationGraph(YearFilterableTask):
             df = pd.read_csv(f, header=0, usecols=(0,))
             return df['author_id'].astype(str).values
 
+    def read_author_fields(self):
+        """Iterate through (author_id, author_name) pairs from the author csv file."""
+        for record in util.iter_csv_fwrapper(self.author_file):
+            yield (record[0], record[1])
+
     def get_edges(self):
         """Return all edges from a file in which each line contains an (author,
         paper) pair."""
@@ -199,15 +204,21 @@ class BuildAuthorCitationGraph(YearFilterableTask):
         edges = self.get_edges()
         authorg = util.build_undirected_graph(nodes, edges)
 
-        # Now write the graph to gzipped graphml file.
         graph_output_file, idmap_output_file = self.output()
-        authorg.write_graphmlz(graph_output_file.path)
 
-        # Finally, build and save the ID map.
+        # build and save the ID map.
         idmap = {v['name']: v.index for v in authorg.vs}
         rows = sorted(idmap.items())
         util.write_csv_to_fwrapper(
             idmap_output_file, ('author_id', 'node_id'), rows)
+
+        # Now add fields to nodes as paper attributes
+        for author_id, author_name in self.read_author_fields():
+            node_id = idmap[author_id]
+            refg.vs[node_id]['author_name'] = author_name
+
+        # Now write the graph to gzipped graphml file.
+        authorg.write_graphmlz(graph_output_file.path)
 
 
 class WriteLCCAuthorCitationGraph(YearFilterableTask):

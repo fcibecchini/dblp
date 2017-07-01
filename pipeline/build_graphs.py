@@ -158,6 +158,10 @@ class BuildAuthorCitationGraph(YearFilterableTask):
         return self.input()[2]
 
     @property
+    def person_file(self):
+        return self.input()[3]
+
+    @property
     def base_paths(self):
         return ('author-citation-graph.graphml.gz',
                 'author-id-to-node-id-map.csv')
@@ -170,9 +174,9 @@ class BuildAuthorCitationGraph(YearFilterableTask):
             df = pd.read_csv(f, header=0, usecols=(0,))
             return df['author_id'].astype(str).values
 
-    def read_author_fields(self):
-        """Iterate through (author_id, author_name) pairs from the author csv file."""
-        for record in util.iter_csv_fwrapper(self.author_file):
+    def read_author_name(self):
+        """Iterate through (author_id, author_name) pairs from the person csv file."""
+        for record in util.iter_csv_fwrapper(self.person_file):
             yield (record[0], record[1])
 
     def get_edges(self):
@@ -213,7 +217,7 @@ class BuildAuthorCitationGraph(YearFilterableTask):
             idmap_output_file, ('author_id', 'node_id'), rows)
 
         # Now add fields to nodes as author attributes
-        for author_id, author_name in self.read_author_fields():
+        for author_id, author_name in self.read_author_name():
             node_id = idmap[author_id]
             authorg.vs[node_id]['author_name'] = author_name
 

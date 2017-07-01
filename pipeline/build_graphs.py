@@ -212,10 +212,10 @@ class BuildAuthorCitationGraph(YearFilterableTask):
         util.write_csv_to_fwrapper(
             idmap_output_file, ('author_id', 'node_id'), rows)
 
-        # Now add fields to nodes as paper attributes
+        # Now add fields to nodes as author attributes
         for author_id, author_name in self.read_author_fields():
             node_id = idmap[author_id]
-            refg.vs[node_id]['author_name'] = author_name
+            authorg.vs[node_id]['author_name'] = author_name
 
         # Now write the graph to gzipped graphml file.
         authorg.write_graphmlz(graph_output_file.path)

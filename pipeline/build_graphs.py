@@ -69,10 +69,10 @@ class BuildPaperCitationGraph(YearFilterableTask):
             papers_df = pd.read_csv(papers_file, header=0, usecols=(0,))
             return papers_df['id'].values
 
-    def read_paper_venues(self):
+    def read_paper_fields(self):
         """Iterate through (paper_id, venue) pairs from the paper csv file."""
         for record in util.iter_csv_fwrapper(self.papers_file):
-            yield (record[0], record[2])
+            yield (record[0], record[1], record[2], record[3], record[4])
 
     def read_paper_references(self, idmap):
         """Filter out references to papers outside dataset."""
@@ -92,9 +92,12 @@ class BuildPaperCitationGraph(YearFilterableTask):
             self.idmap_output_file, ('paper_id', 'node_id'), rows)
 
         # Now add venues to nodes as paper attributes
-        for paper_id, venue in self.read_paper_venues():
+        for paper_id, title, venue, year, abstract in self.read_paper_fields():
             node_id = idmap[paper_id]
+            refg.vs[node_id]['title'] = title
             refg.vs[node_id]['venue'] = venue
+            refg.vs[node_id]['year'] = year
+            refg.vs[node_id]['abstract'] = abstract
 
         # next add author ids
         for v in refg.vs:

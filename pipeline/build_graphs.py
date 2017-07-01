@@ -158,10 +158,6 @@ class BuildAuthorCitationGraph(YearFilterableTask):
         return self.input()[2]
 
     @property
-    def person_file(self):
-        return self.input()[3]
-
-    @property
     def base_paths(self):
         return ('author-citation-graph.graphml.gz',
                 'author-id-to-node-id-map.csv')
@@ -173,11 +169,6 @@ class BuildAuthorCitationGraph(YearFilterableTask):
         with self.author_file.open() as f:
             df = pd.read_csv(f, header=0, usecols=(0,))
             return df['author_id'].astype(str).values
-
-    def read_author_name(self):
-        """Iterate through (author_id, author_name) pairs from the person csv file."""
-        for record in util.iter_csv_fwrapper(self.person_file):
-            yield (record[0], record[1])
 
     def get_edges(self):
         """Return all edges from a file in which each line contains an (author,
@@ -208,21 +199,29 @@ class BuildAuthorCitationGraph(YearFilterableTask):
         edges = self.get_edges()
         authorg = util.build_undirected_graph(nodes, edges)
 
-        graph_output_file, idmap_output_file = self.output()
+        # Load person names in map
+        person = {}
+        with open("../data/filtered-csv/person-2000-2017.csv") as f:
+            reader = csv.reader(f)
+            reader.next()
+            for record in reader:
+                person[record[0]] = record[1]
 
-        # build and save the ID map.
+        # Add text name to nodes
+        for v in authorg.vs:
+            v['author_name'] = person[v['name']]
+
+        # Now write the graph to gzipped graphml file.
+        graph_output_file, idmap_output_file = self.output()
+        authorg.write_graphmlz(graph_output_file.path)
+
+        # Finally, build and save the ID map.
         idmap = {v['name']: v.index for v in authorg.vs}
         rows = sorted(idmap.items())
         util.write_csv_to_fwrapper(
             idmap_output_file, ('author_id', 'node_id'), rows)
 
-        # Now add fields to nodes as author attributes
-        for author_id, author_name in self.read_author_name():
-            node_id = idmap[author_id]
-            authorg.vs[node_id]['author_name'] = author_name
 
-        # Now write the graph to gzipped graphml file.
-        authorg.write_graphmlz(graph_output_file.path)
 
 
 class WriteLCCAuthorCitationGraph(YearFilterableTask):

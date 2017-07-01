@@ -105,7 +105,7 @@ class BuildPaperCitationGraph(YearFilterableTask):
 
         for author_id, paper_id in util.iter_csv_fwrapper(self.author_file):
             node_id = idmap[paper_id]
-            refg.vs[node_id]['author_ids'] = author_id
+            refg.vs[node_id]['author_ids'].append(author_id)
 
         # Finally add edges from citation records
         citation_links = self.read_paper_references(idmap)

@@ -94,6 +94,7 @@ class BuildPaperCitationGraph(YearFilterableTask):
         # Now add fields to nodes as paper attributes
         for paper_id, title, venue, year, abstract in self.read_paper_fields():
             node_id = idmap[paper_id]
+            refg.vs[node_id]['labels'] = ':Paper'
             refg.vs[node_id]['title'] = title
             refg.vs[node_id]['venue'] = venue
             refg.vs[node_id]['year'] = year
@@ -210,6 +211,7 @@ class BuildAuthorCitationGraph(YearFilterableTask):
         # Add text name to nodes
         for v in authorg.vs:
             v['author_name'] = person[v['name']]
+            v['labels'] = ':Author'
 
         # Now write the graph to gzipped graphml file.
         graph_output_file, idmap_output_file = self.output()

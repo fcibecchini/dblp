@@ -262,7 +262,7 @@ class ParseAuthorNamesToCSV(luigi.Task):
 
     def run(self):
         author_rows = self.read_author_id_name_pairs()
-        util.write_csv_to_fwrapper(self.output(), ('id', 'name'), author_rows)
+        util.write_csv_to_fwrapper(self.output(), ['id', 'name', 'h-index', 'interests'], author_rows)
 
     def read_author_id_name_pairs(self):
         def _read_single_pair(f):
@@ -270,8 +270,16 @@ class ParseAuthorNamesToCSV(luigi.Task):
                 index = f.readline().split()[-1]
                 name_line = f.readline().split()
                 name = ' '.join(name_line[1:])
+                f.readline()
+                f.readline()
+                f.readline()
+                h_index = f.readline().split()[-1]
+                f.readline()
+                f.readline()
+                interests_line = f.readline().split()
+                interests = ' '.join(interests_line[1:])
                 util.read_to_newline(f)
-                return (index, name)
+                return [index, name, h_index, interests]
             except:
                 raise StopIteration()
 

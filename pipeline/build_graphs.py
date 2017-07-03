@@ -144,7 +144,8 @@ class BuildAuthorCitationGraph(YearFilterableTask):
     def requires(self):
         return (filtering.FilterAuthorshipsToYearRange(self.start, self.end),
                 PaperCitationGraphIdmap(self.start, self.end),
-                PickledPaperCitationGraph(self.start, self.end))
+                PickledPaperCitationGraph(self.start, self.end),
+                filtering.FilterAuthorNamesToYearRange(self.start, self.end))
 
     @property
     def author_file(self):
@@ -157,6 +158,10 @@ class BuildAuthorCitationGraph(YearFilterableTask):
     @property
     def paper_graph_file(self):
         return self.input()[2]
+    
+    @property
+    def person_file(self):
+        return self.input()[3]
 
     @property
     def base_paths(self):
@@ -202,15 +207,18 @@ class BuildAuthorCitationGraph(YearFilterableTask):
 
         # Load person names in map
         person = {}
-        with open("../data/filtered-csv/person-2000-2017.csv") as f:
+        with self.person_file.open() as f:
             reader = csv.reader(f)
             reader.next()
             for record in reader:
-                person[record[0]] = record[1]
+                person[record[0]] = [record[1],record[2],record[3]]
 
         # Add text name to nodes
         for v in authorg.vs:
-            v['author_name'] = person[v['name']]
+            infos = person[v['name']]
+            v['author_name'] = infos[0]
+            v['h_index'] = infos[1]
+            v['interests'] = infos[2]
             v['labels'] = ':Author'
 
         # Now write the graph to gzipped graphml file.

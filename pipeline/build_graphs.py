@@ -175,34 +175,37 @@ class BuildAuthorCitationGraph(YearFilterableTask):
         """
         with self.author_file.open() as f:
             df = pd.read_csv(f, header=0, usecols=(0,))
-            return df['author_id'].astype(str).values
+            return set(df['author_id'].astype(str).values)
 
     def get_edges(self):
         """Return all edges from a file in which each line contains an (author,
         paper) pair."""
         records = util.iter_csv_fwrapper(self.paper_idmap_file)
         idmap = {record[0]: int(record[1]) for record in records}
-        refg = igraph.Graph.Read_GraphML(self.paper_graph_file.open())
+        refg = igraph.Graph.Read_GraphML(self.paper_graph_file.path)
         records = util.iter_csv_fwrapper(self.author_file)
         rows = ((refg, idmap[paper_id], author_id)
                 for author_id, paper_id in records)
 
         while True:
             edges = self.get_paper_edges(*rows.next())
-            for edge in edges:
-                yield edge
+            for (src,dest) in edges:
+                yield (src,dest)
+
 
     def get_paper_edges(self, refg, paper_id, author_id):
         """Return a list of author-to-author edges for each paper."""
         node = refg.vs[paper_id]
         neighbors = node.neighbors()
-        author_lists = [n['author_ids'] for n in neighbors]
+        author_lists = [n['author_ids'].split(",") for n in neighbors]
+        author_lists = map(lambda l: filter(None, l), author_lists)
         if not author_lists: return []
-        authors = reduce(lambda x,y: x+","+y, author_lists)
-        return zip([str(author_id)]*len(authors), authors)
+        authors = reduce(lambda x,y: x+y, author_lists)
+        return zip([author_id]*len(authors), authors)
 
     def run(self):
         nodes = self.read_author_ids()
+        nodes = sorted(nodes)
         edges = self.get_edges()
         authorg = util.build_directed_graph(nodes, edges)
 

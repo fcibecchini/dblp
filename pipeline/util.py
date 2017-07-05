@@ -159,9 +159,9 @@ def read_idmap(idmap_fname):
     return idmap
 
 
-def build_undirected_graph(nodes, edges):
-    """Build an undirected graph, removing duplicates edges."""
-    graph = igraph.Graph()
+def build_directed_graph(nodes, edges):
+    """Build a directed graph, removing duplicates edges."""
+    graph = igraph.Graph(directed=True)
     graph.add_vertices(nodes)
     graph.add_edges(edges)
     graph.simplify()

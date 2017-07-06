@@ -173,9 +173,9 @@ class BuildAuthorCitationGraph(YearFilterableTask):
         """Read author ids from author file and return as strings (for easy
         reference when adding edges).
         """
-        with self.author_file.open() as f:
+        with self.person_file.open() as f:
             df = pd.read_csv(f, header=0, usecols=(0,))
-            return set(df['author_id'].astype(str).values)
+            return df['id'].astype(str).values
 
     def get_edges(self):
         """Return all edges from a file in which each line contains an (author,
@@ -189,14 +189,14 @@ class BuildAuthorCitationGraph(YearFilterableTask):
 
         while True:
             edges = self.get_paper_edges(*rows.next())
-            for (src,dest) in edges:
-                yield (src,dest)
+            for edge in edges:
+                yield edge
 
 
     def get_paper_edges(self, refg, paper_id, author_id):
         """Return a list of author-to-author edges for each paper."""
         node = refg.vs[paper_id]
-        neighbors = node.neighbors()
+        neighbors = node.neighbors(mode=1)
         author_lists = [n['author_ids'].split(",") for n in neighbors]
         author_lists = map(lambda l: filter(None, l), author_lists)
         if not author_lists: return []
@@ -205,7 +205,6 @@ class BuildAuthorCitationGraph(YearFilterableTask):
 
     def run(self):
         nodes = self.read_author_ids()
-        nodes = sorted(nodes)
         edges = self.get_edges()
         authorg = util.build_directed_graph(nodes, edges)
 
